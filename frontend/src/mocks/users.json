@@ -1,0 +1,29 @@
+[
+  {
+    "id": "usr_101",
+    "name": "Alex Johnson",
+    "email": "student@ems.edu",
+    "role": "STUDENT",
+    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+    "department": "Computer Science",
+    "status": "ACTIVE"
+  },
+  {
+    "id": "usr_102",
+    "name": "Dr. Sarah Connor",
+    "email": "faculty@ems.edu",
+    "role": "FACULTY",
+    "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
+    "department": "Computer Science",
+    "status": "ACTIVE"
+  },
+  {
+    "id": "usr_103",
+    "name": "System Admin",
+    "email": "admin@ems.edu",
+    "role": "ADMIN",
+    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+    "department": "IT Operations",
+    "status": "ACTIVE"
+  }
+]

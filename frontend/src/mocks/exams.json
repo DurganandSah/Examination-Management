@@ -1,0 +1,35 @@
+[
+  {
+    "id": "ex_001",
+    "title": "Data Structures & Algorithms Midterm",
+    "subjectCode": "CS201",
+    "durationMinutes": 60,
+    "totalMarks": 100,
+    "passingPercentage": 50,
+    "status": "ACTIVE",
+    "questionsCount": 5,
+    "scheduledAt": "2026-09-27T10:00:00Z"
+  },
+  {
+    "id": "ex_002",
+    "title": "Database Management Systems Final",
+    "subjectCode": "CS302",
+    "durationMinutes": 90,
+    "totalMarks": 100,
+    "passingPercentage": 40,
+    "status": "UPCOMING",
+    "questionsCount": 10,
+    "scheduledAt": "2026-10-05T14:00:00Z"
+  },
+  {
+    "id": "ex_003",
+    "title": "Computer Networks Quiz 1",
+    "subjectCode": "CS304",
+    "durationMinutes": 30,
+    "totalMarks": 50,
+    "passingPercentage": 60,
+    "status": "COMPLETED",
+    "questionsCount": 5,
+    "scheduledAt": "2026-09-20T09:00:00Z"
+  }
+]

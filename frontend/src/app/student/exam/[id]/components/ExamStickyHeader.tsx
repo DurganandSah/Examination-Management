@@ -21,7 +21,8 @@ interface ExamStickyHeaderProps {
   studentName?: string;
   studentId?: string;
   initialTimeSeconds?: number;
-  autosaveStatus?: "saved" | "saving" | "error";
+  timeRemaining?: number;
+  autosaveStatus?: "saved" | "saving" | "error" | "IDLE" | "SAVING" | "SAVED" | "ERROR";
   lastSavedText?: string;
   totalQuestions?: number;
   answeredCount?: number;
@@ -35,6 +36,7 @@ export default function ExamStickyHeader({
   studentName = "Alex Morgan",
   studentId = "STU-892401",
   initialTimeSeconds = 3600, // Default 60 minutes
+  timeRemaining,
   autosaveStatus = "saved",
   lastSavedText = "10s ago",
   totalQuestions = 30,
@@ -43,16 +45,23 @@ export default function ExamStickyHeader({
   markedCount = 2,
   onSubmitExam
 }: ExamStickyHeaderProps) {
-  const [timeLeft, setTimeLeft] = useState<number>(initialTimeSeconds);
+  const [timeLeft, setTimeLeft] = useState<number>(timeRemaining ?? initialTimeSeconds);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
+    if (timeRemaining !== undefined) {
+      setTimeLeft(timeRemaining);
+    }
+  }, [timeRemaining]);
+
+  useEffect(() => {
+    if (timeRemaining !== undefined) return; // Controlled externally
     if (timeLeft <= 0) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, [timeLeft, timeRemaining]);
 
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
@@ -129,21 +138,24 @@ export default function ExamStickyHeader({
           <div className="flex items-center space-x-3 sm:space-x-4">
             {/* Autosave Status Badge */}
             <div className="hidden md:flex items-center space-x-2 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-3 py-1.5 rounded-lg text-xs">
-              {autosaveStatus === "saving" ? (
+              {autosaveStatus === "saving" || autosaveStatus === "SAVING" ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-400 animate-spin" />
-                  <span className="text-zinc-700 dark:text-zinc-300 font-medium">Syncing...</span>
+                  <span className="text-zinc-700 dark:text-zinc-300 font-medium">Saving progress...</span>
                 </>
-              ) : autosaveStatus === "error" ? (
+              ) : autosaveStatus === "error" || autosaveStatus === "ERROR" ? (
                 <>
-                  <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
-                  <span className="text-rose-500 font-medium">Sync error</span>
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                    Saved locally {lastSavedText ? `at ${lastSavedText}` : ""}
+                  </span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-zinc-700 dark:text-zinc-300" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                   <span className="text-zinc-500 dark:text-zinc-400">
-                    Autosaved <span className="text-zinc-900 dark:text-zinc-100 font-medium">{lastSavedText}</span>
+                    Saved locally <span className="text-zinc-900 dark:text-zinc-100 font-medium">{lastSavedText}</span>
                   </span>
                 </>
               )}

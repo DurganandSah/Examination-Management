@@ -1,0 +1,26 @@
+[
+  {
+    "id": "att_001",
+    "userId": "usr_101",
+    "examId": "ex_003",
+    "examTitle": "Computer Networks Quiz 1",
+    "subjectCode": "CS304",
+    "score": 45,
+    "totalMarks": 50,
+    "percentage": 90,
+    "status": "PASSED",
+    "completedAt": "2026-09-20T09:28:15Z"
+  },
+  {
+    "id": "att_002",
+    "userId": "usr_101",
+    "examId": "ex_000",
+    "examTitle": "Operating Systems Quiz",
+    "subjectCode": "CS202",
+    "score": 18,
+    "totalMarks": 50,
+    "percentage": 36,
+    "status": "FAILED",
+    "completedAt": "2026-09-10T11:15:00Z"
+  }
+]

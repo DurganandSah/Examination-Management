@@ -1,0 +1,52 @@
+[
+  {
+    "id": "q_001",
+    "examId": "ex_001",
+    "questionText": "What is the worst-case time complexity of QuickSort?",
+    "options": ["O(N log N)", "O(N)", "O(N^2)", "O(log N)"],
+    "correctAnswer": 2,
+    "subjectTag": "CS201",
+    "difficulty": "MEDIUM",
+    "marks": 20
+  },
+  {
+    "id": "q_002",
+    "examId": "ex_001",
+    "questionText": "Which data structure follows the LIFO (Last In First Out) principle?",
+    "options": ["Queue", "Stack", "Binary Tree", "Linked List"],
+    "correctAnswer": 1,
+    "subjectTag": "CS201",
+    "difficulty": "EASY",
+    "marks": 20
+  },
+  {
+    "id": "q_003",
+    "examId": "ex_001",
+    "questionText": "What algorithm is used to find the shortest path in a weighted graph with non-negative edge weights?",
+    "options": ["Dijkstra's Algorithm", "Kruskal's Algorithm", "Prim's Algorithm", "Floyd-Warshall Algorithm"],
+    "correctAnswer": 0,
+    "subjectTag": "CS201",
+    "difficulty": "HARD",
+    "marks": 20
+  },
+  {
+    "id": "q_004",
+    "examId": "ex_001",
+    "questionText": "In a max-heap, where is the largest element stored?",
+    "options": ["Leaf node", "Root node", "Middle node", "Any random position"],
+    "correctAnswer": 1,
+    "subjectTag": "CS201",
+    "difficulty": "EASY",
+    "marks": 20
+  },
+  {
+    "id": "q_005",
+    "examId": "ex_001",
+    "questionText": "Which of the following traversal techniques visits the root node first?",
+    "options": ["In-order", "Post-order", "Pre-order", "Level-order"],
+    "correctAnswer": 2,
+    "subjectTag": "CS201",
+    "difficulty": "MEDIUM",
+    "marks": 20
+  }
+]

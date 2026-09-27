@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { RoleProvider } from "@/context/RoleContext";
 import { ThemeProvider } from "@/context/ThemeProvider";
+import { ExamProvider } from "@/context/ExamContext";
 import { DashboardWrapper } from "@/components/DashboardWrapper";
 
 const geistSans = Geist({
@@ -30,7 +31,9 @@ export default function RootLayout({
       <body className="min-h-full bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans antialiased selection:bg-zinc-900 selection:text-white dark:selection:bg-zinc-100 dark:selection:text-zinc-900 transition-colors">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <RoleProvider>
-            <DashboardWrapper>{children}</DashboardWrapper>
+            <ExamProvider>
+              <DashboardWrapper>{children}</DashboardWrapper>
+            </ExamProvider>
           </RoleProvider>
         </ThemeProvider>
       </body>

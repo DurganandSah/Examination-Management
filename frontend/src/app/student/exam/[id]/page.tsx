@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Bookmark, 
   ChevronLeft, 
@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import ExamStickyHeader from "./components/ExamStickyHeader";
 import QuestionNavigator, { QuestionNavItem, QuestionStatus } from "./components/QuestionNavigator";
+import { useExam } from "@/context/ExamContext";
+import { useAutosave } from "@/hooks/useAutosave";
 
 interface Option {
   id: string;
@@ -97,35 +99,63 @@ const mockQuestions: Question[] = [
 const sections = ["Mathematics", "Physics", "Logic"];
 
 export default function StudentExamPage({ params }: { params: { id: string } }) {
+  const {
+    activeExamId,
+    timeRemaining,
+    answers,
+    markedForReview,
+    isSubmitted,
+    startExam,
+    selectAnswer,
+    clearAnswer,
+    toggleMarkForReview,
+    submitExam,
+  } = useExam();
+
   const [activeSection, setActiveSection] = useState<string>("Mathematics");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
-
-  // User response state: object mapping questionId to array of selected option IDs
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string[]>>({});
-  const [markedForReview, setMarkedForReview] = useState<Record<number, boolean>>({});
   const [visitedQuestions, setVisitedQuestions] = useState<Record<number, boolean>>({ 1: true });
-  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+
+  const examId = params?.id || "exam-01";
+
+  const { autosaveStatus, lastSavedAt } = useAutosave({ intervalMs: 30000 });
+
+  // Format timestamp for display (e.g. HH:MM:SS or "Just now")
+  const formatSavedTime = (date: Date | null) => {
+    if (!date) return "at startup";
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  };
+
+  // Start exam context on mount if not already initialized
+  useEffect(() => {
+    if (activeExamId !== examId) {
+      startExam(examId, 60); // 60 minutes
+    }
+  }, [activeExamId, examId, startExam]);
 
   // Filter questions for the current section
   const sectionQuestions = mockQuestions.filter((q) => q.section === activeSection);
   const currentQuestion = sectionQuestions[currentQuestionIndex] || sectionQuestions[0];
 
-  const currentSelectedOptions = selectedAnswers[currentQuestion.id] || [];
-  const isCurrentMarked = !!markedForReview[currentQuestion.id];
+  // Helper to parse stored answer string into option IDs array
+  const getSelectedOptionsForQuestion = (qId: number): string[] => {
+    const raw = answers[String(qId)];
+    if (!raw) return [];
+    return raw.split(",");
+  };
 
-  const answeredCount = Object.keys(selectedAnswers).filter(
-    (k) => (selectedAnswers[Number(k)] || []).length > 0
-  ).length;
-  const markedCount = Object.keys(markedForReview).filter(
-    (k) => markedForReview[Number(k)]
-  ).length;
+  const currentSelectedOptions = getSelectedOptionsForQuestion(currentQuestion.id);
+  const isCurrentMarked = markedForReview.includes(String(currentQuestion.id));
+
+  const answeredCount = Object.keys(answers).filter((k) => answers[k] && answers[k].length > 0).length;
+  const markedCount = markedForReview.length;
   const totalQuestionsCount = mockQuestions.length;
   const unansweredCount = totalQuestionsCount - answeredCount;
 
   // Build question navigator items for all questions
   const navQuestions: QuestionNavItem[] = mockQuestions.map((q, idx) => {
-    const isAns = (selectedAnswers[q.id] || []).length > 0;
-    const isMrk = !!markedForReview[q.id];
+    const isAns = (getSelectedOptionsForQuestion(q.id)).length > 0;
+    const isMrk = markedForReview.includes(String(q.id));
     const isVis = !!visitedQuestions[q.id];
 
     let status: QuestionStatus = "not_visited";
@@ -161,38 +191,16 @@ export default function StudentExamPage({ params }: { params: { id: string } }) 
   };
 
   const handleOptionSelect = (optionId: string) => {
-    if (currentQuestion.type === "single") {
-      setSelectedAnswers((prev) => ({
-        ...prev,
-        [currentQuestion.id]: [optionId],
-      }));
-    } else {
-      // Multiple selection toggle
-      const existing = selectedAnswers[currentQuestion.id] || [];
-      const updated = existing.includes(optionId)
-        ? existing.filter((id) => id !== optionId)
-        : [...existing, optionId];
-      setSelectedAnswers((prev) => ({
-        ...prev,
-        [currentQuestion.id]: updated,
-      }));
-    }
+    selectAnswer(String(currentQuestion.id), optionId, currentQuestion.type === "multiple");
     setVisitedQuestions((prev) => ({ ...prev, [currentQuestion.id]: true }));
   };
 
   const handleClearResponse = () => {
-    setSelectedAnswers((prev) => {
-      const copy = { ...prev };
-      delete copy[currentQuestion.id];
-      return copy;
-    });
+    clearAnswer(String(currentQuestion.id));
   };
 
   const handleToggleMarkForReview = () => {
-    setMarkedForReview((prev) => ({
-      ...prev,
-      [currentQuestion.id]: !prev[currentQuestion.id],
-    }));
+    toggleMarkForReview(String(currentQuestion.id));
     setVisitedQuestions((prev) => ({ ...prev, [currentQuestion.id]: true }));
   };
 
@@ -210,10 +218,6 @@ export default function StudentExamPage({ params }: { params: { id: string } }) 
       setCurrentQuestionIndex((prev) => prev - 1);
       setVisitedQuestions((prev) => ({ ...prev, [prevQ.id]: true }));
     }
-  };
-
-  const handleExamSubmit = () => {
-    setIsSubmitted(true);
   };
 
   const getDifficultyBadge = (difficulty: string) => {
@@ -238,7 +242,7 @@ export default function StudentExamPage({ params }: { params: { id: string } }) 
           </div>
           <h2 className="text-2xl font-bold mb-2">Exam Submitted Successfully!</h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
-            Your answers have been securely recorded. Results will be announced by your administrator.
+            Your answers have been securely recorded and synced. Results will be announced by your administrator.
           </p>
           <button
             onClick={() => (window.location.href = "/student/dashboard")}
@@ -258,14 +262,14 @@ export default function StudentExamPage({ params }: { params: { id: string } }) 
         examTitle="Advanced Mathematics & Physics Entrance Assessment 2026"
         studentName="Alex Morgan"
         studentId="STU-892401"
-        initialTimeSeconds={3600}
-        autosaveStatus="saved"
-        lastSavedText="10s ago"
+        timeRemaining={timeRemaining}
+        autosaveStatus={autosaveStatus}
+        lastSavedText={formatSavedTime(lastSavedAt)}
         totalQuestions={totalQuestionsCount}
         answeredCount={answeredCount}
         unansweredCount={unansweredCount}
         markedCount={markedCount}
-        onSubmitExam={handleExamSubmit}
+        onSubmitExam={submitExam}
       />
 
       <div className="flex-1 flex flex-col lg:flex-row p-4 md:p-6 gap-6 max-w-7xl mx-auto w-full">

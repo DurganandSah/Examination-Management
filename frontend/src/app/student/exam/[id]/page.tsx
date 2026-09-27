@@ -10,8 +10,9 @@ import {
   CheckSquare, 
   Circle,
   HelpCircle,
-  AlertCircle
 } from "lucide-react";
+import ExamStickyHeader from "./components/ExamStickyHeader";
+import QuestionNavigator, { QuestionNavItem, QuestionStatus } from "./components/QuestionNavigator";
 
 interface Option {
   id: string;
@@ -102,6 +103,8 @@ export default function StudentExamPage({ params }: { params: { id: string } }) 
   // User response state: object mapping questionId to array of selected option IDs
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string[]>>({});
   const [markedForReview, setMarkedForReview] = useState<Record<number, boolean>>({});
+  const [visitedQuestions, setVisitedQuestions] = useState<Record<number, boolean>>({ 1: true });
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
 
   // Filter questions for the current section
   const sectionQuestions = mockQuestions.filter((q) => q.section === activeSection);
@@ -109,6 +112,53 @@ export default function StudentExamPage({ params }: { params: { id: string } }) 
 
   const currentSelectedOptions = selectedAnswers[currentQuestion.id] || [];
   const isCurrentMarked = !!markedForReview[currentQuestion.id];
+
+  const answeredCount = Object.keys(selectedAnswers).filter(
+    (k) => (selectedAnswers[Number(k)] || []).length > 0
+  ).length;
+  const markedCount = Object.keys(markedForReview).filter(
+    (k) => markedForReview[Number(k)]
+  ).length;
+  const totalQuestionsCount = mockQuestions.length;
+  const unansweredCount = totalQuestionsCount - answeredCount;
+
+  // Build question navigator items for all questions
+  const navQuestions: QuestionNavItem[] = mockQuestions.map((q, idx) => {
+    const isAns = (selectedAnswers[q.id] || []).length > 0;
+    const isMrk = !!markedForReview[q.id];
+    const isVis = !!visitedQuestions[q.id];
+
+    let status: QuestionStatus = "not_visited";
+    if (isMrk) {
+      status = "marked";
+    } else if (isAns) {
+      status = "answered";
+    } else if (isVis) {
+      status = "unanswered";
+    }
+
+    return {
+      id: q.id,
+      questionNumber: idx + 1,
+      section: q.section,
+      status,
+    };
+  });
+
+  const notVisitedCount = navQuestions.filter((q) => q.status === "not_visited").length;
+  const unansweredNavCount = navQuestions.filter((q) => q.status === "unanswered").length;
+
+  const handleSelectQuestionById = (qId: number) => {
+    const targetQ = mockQuestions.find((q) => q.id === qId);
+    if (!targetQ) return;
+
+    if (targetQ.section !== activeSection) {
+      setActiveSection(targetQ.section);
+    }
+    const secIdx = mockQuestions.filter((q) => q.section === targetQ.section).findIndex((q) => q.id === qId);
+    setCurrentQuestionIndex(secIdx !== -1 ? secIdx : 0);
+    setVisitedQuestions((prev) => ({ ...prev, [qId]: true }));
+  };
 
   const handleOptionSelect = (optionId: string) => {
     if (currentQuestion.type === "single") {
@@ -127,6 +177,7 @@ export default function StudentExamPage({ params }: { params: { id: string } }) 
         [currentQuestion.id]: updated,
       }));
     }
+    setVisitedQuestions((prev) => ({ ...prev, [currentQuestion.id]: true }));
   };
 
   const handleClearResponse = () => {
@@ -142,186 +193,257 @@ export default function StudentExamPage({ params }: { params: { id: string } }) 
       ...prev,
       [currentQuestion.id]: !prev[currentQuestion.id],
     }));
+    setVisitedQuestions((prev) => ({ ...prev, [currentQuestion.id]: true }));
   };
 
   const handleSaveAndNext = () => {
     if (currentQuestionIndex < sectionQuestions.length - 1) {
+      const nextQ = sectionQuestions[currentQuestionIndex + 1];
       setCurrentQuestionIndex((prev) => prev + 1);
+      setVisitedQuestions((prev) => ({ ...prev, [nextQ.id]: true }));
     }
   };
 
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
+      const prevQ = sectionQuestions[currentQuestionIndex - 1];
       setCurrentQuestionIndex((prev) => prev - 1);
+      setVisitedQuestions((prev) => ({ ...prev, [prevQ.id]: true }));
     }
+  };
+
+  const handleExamSubmit = () => {
+    setIsSubmitted(true);
   };
 
   const getDifficultyBadge = (difficulty: string) => {
     switch (difficulty) {
       case "Easy":
-        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+        return "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-200 dark:border-zinc-700";
       case "Medium":
-        return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+        return "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-200 dark:border-zinc-700";
       case "Hard":
-        return "bg-rose-500/10 text-rose-400 border-rose-500/20";
+        return "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-200 dark:border-zinc-700";
       default:
-        return "bg-slate-500/10 text-slate-400 border-slate-500/20";
+        return "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700";
     }
   };
 
-  return (
-    <div className="flex flex-col h-full bg-slate-950 text-slate-100 p-4 md:p-6 max-w-6xl mx-auto w-full">
-      {/* Subject / Section Tab Switcher */}
-      <div className="flex items-center space-x-2 border-b border-slate-800 pb-3 mb-6 overflow-x-auto">
-        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-2">
-          Sections:
-        </span>
-        {sections.map((sec) => (
+  if (isSubmitted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 p-6 text-center transition-colors">
+        <div className="max-w-md w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-2xl shadow-xl flex flex-col items-center">
+          <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-full flex items-center justify-center mb-4">
+            <CheckSquare className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Exam Submitted Successfully!</h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+            Your answers have been securely recorded. Results will be announced by your administrator.
+          </p>
           <button
-            key={sec}
-            onClick={() => {
-              setActiveSection(sec);
-              setCurrentQuestionIndex(0);
-            }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-              activeSection === sec
-                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
-                : "bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-            }`}
+            onClick={() => (window.location.href = "/student/dashboard")}
+            className="w-full py-3 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-semibold rounded-xl transition-all shadow-sm text-sm"
           >
-            {sec}
+            Return to Student Dashboard
           </button>
-        ))}
+        </div>
       </div>
+    );
+  }
 
-      {/* Main Question Card Container */}
-      <div className="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl flex flex-col justify-between">
-        <div>
-          {/* Question Header Info */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
-            <div className="flex items-center space-x-3">
-              <span className="bg-indigo-950 border border-indigo-800 text-indigo-300 font-bold px-3 py-1 rounded-md text-sm">
-                Question {currentQuestionIndex + 1} of {sectionQuestions.length}
-              </span>
-              <span
-                className={`text-xs px-2.5 py-1 rounded-md font-semibold border ${getDifficultyBadge(
-                  currentQuestion.difficulty
-                )}`}
+  return (
+    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors">
+      {/* Sticky Top Header Component */}
+      <ExamStickyHeader
+        examTitle="Advanced Mathematics & Physics Entrance Assessment 2026"
+        studentName="Alex Morgan"
+        studentId="STU-892401"
+        initialTimeSeconds={3600}
+        autosaveStatus="saved"
+        lastSavedText="10s ago"
+        totalQuestions={totalQuestionsCount}
+        answeredCount={answeredCount}
+        unansweredCount={unansweredCount}
+        markedCount={markedCount}
+        onSubmitExam={handleExamSubmit}
+      />
+
+      <div className="flex-1 flex flex-col lg:flex-row p-4 md:p-6 gap-6 max-w-7xl mx-auto w-full">
+        {/* Left Column: Subject Tabs & Main Question Interface */}
+        <div className="flex-1 flex flex-col">
+          {/* Subject / Section Tab Switcher */}
+          <div className="flex items-center space-x-2 border-b border-zinc-200 dark:border-zinc-800 pb-3 mb-6 overflow-x-auto">
+            <span className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mr-2">
+              Sections:
+            </span>
+            {sections.map((sec) => (
+              <button
+                key={sec}
+                onClick={() => {
+                  setActiveSection(sec);
+                  setCurrentQuestionIndex(0);
+                  const firstSecQ = mockQuestions.find((q) => q.section === sec);
+                  if (firstSecQ) {
+                    setVisitedQuestions((prev) => ({ ...prev, [firstSecQ.id]: true }));
+                  }
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeSection === sec
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm"
+                    : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 border border-zinc-200 dark:border-zinc-800"
+                }`}
               >
-                {currentQuestion.difficulty}
-              </span>
-              <span className="text-xs text-slate-400 flex items-center gap-1">
-                <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
-                {currentQuestion.type === "single"
-                  ? "Single Choice"
-                  : "Multiple Choice"}
-              </span>
-            </div>
-
-            <div className="flex items-center space-x-3 text-xs text-slate-400">
-              <span className="text-emerald-400 font-medium">+{currentQuestion.points} Marks</span>
-              <span>/</span>
-              <span className="text-rose-400 font-medium">-{currentQuestion.negativePoints} Marks</span>
-              {isCurrentMarked && (
-                <span className="flex items-center gap-1 text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20 font-medium">
-                  <Bookmark className="w-3 h-3 fill-amber-400" /> Marked
-                </span>
-              )}
-            </div>
+                {sec}
+              </button>
+            ))}
           </div>
 
-          {/* Question Text */}
-          <div className="my-6">
-            <p className="text-lg md:text-xl font-medium text-slate-100 leading-relaxed">
-              {currentQuestion.questionText}
-            </p>
-          </div>
+          {/* Main Question Card Container */}
+          <div className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+            <div>
+              {/* Question Header Info */}
+              <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center space-x-3">
+                  <span className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold px-3 py-1 rounded-md text-sm">
+                    Question {currentQuestionIndex + 1} of {sectionQuestions.length}
+                  </span>
+                  <span
+                    className={`text-xs px-2.5 py-1 rounded-md font-semibold border ${getDifficultyBadge(
+                      currentQuestion.difficulty
+                    )}`}
+                  >
+                    {currentQuestion.difficulty}
+                  </span>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+                    <HelpCircle className="w-3.5 h-3.5 text-zinc-400" />
+                    {currentQuestion.type === "single"
+                      ? "Single Choice"
+                      : "Multiple Choice"}
+                  </span>
+                </div>
 
-          {/* Option Selector */}
-          <div className="space-y-3 mt-4">
-            {currentQuestion.options.map((option) => {
-              const isSelected = currentSelectedOptions.includes(option.id);
-              return (
+                <div className="flex items-center space-x-3 text-xs text-zinc-500 dark:text-zinc-400">
+                  <span className="text-zinc-900 dark:text-zinc-100 font-semibold">+{currentQuestion.points} Marks</span>
+                  <span>/</span>
+                  <span className="text-zinc-500 dark:text-zinc-400 font-medium">-{currentQuestion.negativePoints} Marks</span>
+                  {isCurrentMarked && (
+                    <span className="flex items-center gap-1 text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 font-semibold">
+                      <Bookmark className="w-3 h-3 fill-zinc-900 dark:fill-zinc-100" /> Marked
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Question Text */}
+              <div className="my-6">
+                <p className="text-lg md:text-xl font-medium text-zinc-900 dark:text-zinc-100 leading-relaxed">
+                  {currentQuestion.questionText}
+                </p>
+              </div>
+
+              {/* Option Selector */}
+              <div className="space-y-3 mt-4">
+                {currentQuestion.options.map((option) => {
+                  const isSelected = currentSelectedOptions.includes(option.id);
+                  return (
+                    <button
+                      key={option.id}
+                      onClick={() => handleOptionSelect(option.id)}
+                      className={`w-full flex items-start text-left p-4 rounded-xl border transition-all duration-200 ${
+                        isSelected
+                          ? "bg-zinc-100 dark:bg-zinc-800/80 border-zinc-900 dark:border-zinc-100 text-zinc-900 dark:text-zinc-100 shadow-sm ring-1 ring-zinc-900 dark:ring-zinc-100"
+                          : "bg-zinc-50/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                      }`}
+                    >
+                      <div className="mt-0.5 mr-3 flex-shrink-0">
+                        {currentQuestion.type === "single" ? (
+                          <Circle
+                            className={`w-5 h-5 ${
+                              isSelected
+                                ? "fill-zinc-900 text-zinc-900 dark:fill-zinc-100 dark:text-zinc-100"
+                                : "text-zinc-400"
+                            }`}
+                          />
+                        ) : (
+                          <CheckSquare
+                            className={`w-5 h-5 ${
+                              isSelected ? "text-zinc-900 dark:text-zinc-100 fill-zinc-200 dark:fill-zinc-800" : "text-zinc-400"
+                            }`}
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <span className="font-semibold text-zinc-400 dark:text-zinc-500 mr-2">{option.id}.</span>
+                        <span className="text-base">{option.text}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Action Buttons Footer */}
+            <div className="pt-6 mt-8 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center space-x-3">
                 <button
-                  key={option.id}
-                  onClick={() => handleOptionSelect(option.id)}
-                  className={`w-full flex items-start text-left p-4 rounded-xl border transition-all duration-200 ${
-                    isSelected
-                      ? "bg-indigo-950/60 border-indigo-500 text-indigo-100 shadow-md ring-1 ring-indigo-500/50"
-                      : "bg-slate-950/50 border-slate-800 text-slate-300 hover:bg-slate-800/60 hover:border-slate-700"
+                  onClick={handleToggleMarkForReview}
+                  className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
+                    isCurrentMarked
+                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100"
+                      : "bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   }`}
                 >
-                  <div className="mt-0.5 mr-3 flex-shrink-0">
-                    {currentQuestion.type === "single" ? (
-                      <Circle
-                        className={`w-5 h-5 ${
-                          isSelected
-                            ? "fill-indigo-500 text-indigo-500"
-                            : "text-slate-500"
-                        }`}
-                      />
-                    ) : (
-                      <CheckSquare
-                        className={`w-5 h-5 ${
-                          isSelected ? "text-indigo-400 fill-indigo-950" : "text-slate-500"
-                        }`}
-                      />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <span className="font-semibold text-slate-400 mr-2">{option.id}.</span>
-                    <span className="text-base">{option.text}</span>
-                  </div>
+                  <Bookmark className={`w-4 h-4 ${isCurrentMarked ? "fill-white dark:fill-zinc-900" : ""}`} />
+                  <span>{isCurrentMarked ? "Unmark Review" : "Mark for Review"}</span>
                 </button>
-              );
-            })}
+
+                <button
+                  onClick={handleClearResponse}
+                  disabled={currentSelectedOptions.length === 0}
+                  className="flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Clear Response</span>
+                </button>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={handlePrevious}
+                  disabled={currentQuestionIndex === 0}
+                  className="flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-sm font-medium bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Previous</span>
+                </button>
+
+                <button
+                  onClick={handleSaveAndNext}
+                  className="flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 shadow-sm transition-all duration-200 hover:scale-[1.01] active:scale-95"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Save & Next</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Action Buttons Footer */}
-        <div className="pt-6 mt-8 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={handleToggleMarkForReview}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
-                isCurrentMarked
-                  ? "bg-amber-500/20 border-amber-500 text-amber-300"
-                  : "bg-slate-950 border-slate-800 text-slate-300 hover:bg-slate-800"
-              }`}
-            >
-              <Bookmark className={`w-4 h-4 ${isCurrentMarked ? "fill-amber-400" : ""}`} />
-              <span>{isCurrentMarked ? "Unmark Review" : "Mark for Review"}</span>
-            </button>
-
-            <button
-              onClick={handleClearResponse}
-              disabled={currentSelectedOptions.length === 0}
-              className="flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-slate-950 border border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>Clear Response</span>
-            </button>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={handlePrevious}
-              disabled={currentQuestionIndex === 0}
-              className="flex items-center space-x-1.5 px-4 py-2.5 rounded-lg text-sm font-medium bg-slate-950 border border-slate-800 text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Previous</span>
-            </button>
-
-            <button
-              onClick={handleSaveAndNext}
-              className="flex items-center space-x-2 px-5 py-2.5 rounded-lg text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition-all"
-            >
-              <Save className="w-4 h-4" />
-              <span>Save & Next</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+        {/* Right Column: Question Navigator Sidebar */}
+        <div className="w-full lg:w-80 flex-shrink-0">
+          <QuestionNavigator
+            questions={navQuestions}
+            currentQuestionId={currentQuestion.id}
+            onSelectQuestion={handleSelectQuestionById}
+            summary={{
+              total: totalQuestionsCount,
+              answered: answeredCount,
+              unanswered: unansweredNavCount,
+              marked: markedCount,
+              notVisited: notVisitedCount,
+            }}
+          />
         </div>
       </div>
     </div>

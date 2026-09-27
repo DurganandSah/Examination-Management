@@ -14,10 +14,10 @@ export function RoleSwitcher() {
   ];
 
   return (
-    <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/60 shadow-inner">
-      <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-slate-400">
-        <RefreshCw className="w-3.5 h-3.5 text-indigo-400 animate-spin-slow" />
-        <span className="hidden sm:inline">Role Mock:</span>
+    <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900/80 p-1 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-inner">
+      <div className="flex items-center gap-1.5 px-2 py-1 text-xs font-semibold text-zinc-400 dark:text-zinc-500">
+        <RefreshCw className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
+        <span className="hidden sm:inline">Role:</span>
       </div>
       {roles.map((item) => {
         const Icon = item.icon;
@@ -26,10 +26,10 @@ export function RoleSwitcher() {
           <button
             key={item.key}
             onClick={() => setRole(item.key)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg transition-all duration-200 ${
               isActive
-                ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/25 scale-[1.02]"
-                : "text-slate-300 hover:text-white hover:bg-slate-700/50"
+                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/60 dark:hover:bg-zinc-800"
             }`}
           >
             <Icon className="w-3.5 h-3.5" />
